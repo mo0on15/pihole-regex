@@ -35,12 +35,12 @@ def fetch_url(url):
     return response
 
 
-url_regexps_remote = 'https://raw.githubusercontent.com/mo0on15/pihole-regex/master/regex.list'
+url_regexps_remote = 'https://github.com/mo0on15/test/blob/main/regex.list'
 path_pihole = r'/etc/pihole'
 path_legacy_regex = os.path.join(path_pihole, 'regex.list')
-path_legacy_mmotti_regex = os.path.join(path_pihole, 'mo0on15-regex.list')
+path_legacy_mmotti_regex = os.path.join(path_pihole, 'mmotti-regex.list')
 path_pihole_db = os.path.join(path_pihole, 'gravity.db')
-install_comment = 'github.com/mo0on15/pihole-regex'
+install_comment = 'github.com/mmotti/pihole-regex'
 
 
 db_exists = False
@@ -49,8 +49,8 @@ c = None
 
 regexps_remote = set()
 regexps_local = set()
-regexps_mo0on15_local = set()
-regexps_legacy_mo0on15 = set()
+regexps_mmotti_local = set()
+regexps_legacy_mmotti = set()
 regexps_remove = set()
 
 # Check that pi-hole path exists
@@ -112,13 +112,13 @@ if db_exists:
 
     # Fetch all current mmotti regexps in the local db
     c.execute('SELECT domain FROM domainlist WHERE type = 3 AND comment = ?', (install_comment,))
-    regexps_mo0on15_local_results = c.fetchall()
-    regexps_mo0on15_local.update([x[0] for x in regexps_mo0on15_local_results])
+    regexps_mmotti_local_results = c.fetchall()
+    regexps_mmotti_local.update([x[0] for x in regexps_mmotti_local_results])
 
     # Remove any local entries that do not exist in the remote list
     # (will only work for previous installs where we've set the comment field)
     print('[i] Identifying obsolete regexps')
-    regexps_remove = regexps_mo0o15_local.difference(regexps_remote)
+    regexps_remove = regexps_mmotti_local.difference(regexps_remote)
 
     if regexps_remove:
         print('[i] Removing obsolete regexps')
@@ -126,8 +126,8 @@ if db_exists:
         conn.commit()
 
     # Delete mmotti-regex.list as if we've migrated to the db, it's no longer needed
-    if os.path.exists(path_legacy_mo0on15_regex):
-        os.remove(path_legacy_mo0on15_regex)
+    if os.path.exists(path_legacy_mmotti_regex):
+        os.remove(path_legacy_mmotti_regex)
 
     print('[i] Restarting Pi-hole')
     subprocess.call(['pihole', 'restartdns', 'reload'], stdout=subprocess.DEVNULL)
@@ -155,15 +155,15 @@ else:
     if regexps_local:
         print(f'[i] {len(regexps_local)} existing regexps identified')
         # If we have a record of a previous legacy install
-        if os.path.isfile(path_legacy_mo0on15_regex) and os.path.getsize(path_legacy_mo0on15_regex) > 0:
+        if os.path.isfile(path_legacy_mmotti_regex) and os.path.getsize(path_legacy_mmotti_regex) > 0:
             print('[i] Existing mmotti-regex install identified')
             # Read the previously installed regexps to a set
-            with open(path_legacy_mo0on15_regex, 'r') as fOpen:
+            with open(path_legacy_mmotti_regex, 'r') as fOpen:
                 regexps_legacy_mmotti.update(x for x in map(str.strip, fOpen) if x and x[:1] != '#')
 
-                if regexps_legacy_mo0on15:
+                if regexps_legacy_mmotti:
                     print('[i] Removing previously installed regexps')
-                    regexps_local.difference_update(regexps_legacy_mo0on15)
+                    regexps_local.difference_update(regexps_legacy_mmotti)
 
     # Add remote regexps to local regexps
     print(f'[i] Syncing with {url_regexps_remote}')
@@ -175,9 +175,9 @@ else:
         for line in sorted(regexps_local):
             fWrite.write(f'{line}\n')
 
-    # Output mmotti remote regexps to mo0on15-regex.list
+    # Output mmotti remote regexps to mmotti-regex.list
     # for future install / uninstall
-    with open(path_legacy_mo0on15_regex, 'w') as fWrite:
+    with open(path_legacy_mmotti_regex, 'w') as fWrite:
         for line in sorted(regexps_remote):
             fWrite.write(f'{line}\n')
 
